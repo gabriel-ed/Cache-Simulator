@@ -1,2 +1,2 @@
 # Cache-Simulator
- Configurable cache memory with command lines.
+ Configurable cache memory.
