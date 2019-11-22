@@ -17,6 +17,7 @@ using namespace std;
 unsigned short int input_arr[MAX_SIZE];
 int size_file;
 unsigned int num_cache_lines;
+unsigned int main_cache[MAX_SIZE][MAX_SIZE]; //initialize cache block of block_size rows and 1 column
 
 // global structures
 struct cache_type {
@@ -29,13 +30,15 @@ struct cache_type {
 struct block_data {
 	unsigned int index;
 	unsigned int tag;
-	unsigned int offset;
-};
+	unsigned int data;
+	bool valid = false;
+} blocks[MAX_SIZE];
 //define functions
 void read_f();
 int cache_addr(ifstream &file); // read values from file
 void user_args();
-void cache_table();
+void block_calc();
+void cache_build();
 // main execution
 int main() {
 	cout << "======================================" << endl;
@@ -48,13 +51,13 @@ int main() {
 	user_args();
 	read_f();
 	cout << "The size of the file (in terms of number of lines) is " << size_file << endl;
-	cache_table();
+	block_calc();
 	return 0;
 }
 
 void read_f() {
 	try {
-		ifstream file("addresses.txt");
+		ifstream file("test.txt");
 		if(!file.is_open()) {
 			throw runtime_error("Unable to open file");
 		}
@@ -83,10 +86,10 @@ int cache_addr(ifstream &file) {
 void user_args() {
 	try {
 
-		cout<<"How wide will each block be? (Hint: width of the block in bits)" << endl;
+		cout<<"How wide will each block be? (Hint: width of the block in words)" << endl;
 		cin >> user.block_size;
 
-		if(user.block_size < 4) {
+		if(user.block_size < 1) {
 			throw "Illegal entry. Please input a value equal too or larger than a quarter-word (1 bytes) ";
 		}
 
@@ -108,8 +111,8 @@ void user_args() {
 	return;
 }
 
-void cache_table() {
-	block_data blocks[user.num_blocks];
+void block_calc() {
+
 	//unsigned int main_cache[user.num_blocks]; //initialize cache block of block_size rows and 1 column
 	//unsigned int block_cont[user.block_size]; //initialize block array of block size
 	unsigned int local_vals[size_file];
@@ -142,11 +145,41 @@ void cache_table() {
 	for(int i = 0; i < size_file; i++) {
 		blocks[i].tag = (local_vals[i])/(num_cache_lines * user.block_size);
 	}
+
+	for(int i = 0; i < size_file; i++) {
+		blocks[i].data = local_vals[i];
+	}
 	cout<<"finished populating block array.offset"<<endl;
 	for(int k = 0; k < size_file; k++) {
+		cout<<"Cache Entry " <<k<<endl;
 		cout<<"Block index: "<< blocks[k].index << endl;
 		cout<<"Block tag: " << blocks[k].tag<<endl;
+		cout<<"Block data: " << blocks[k].data<<endl<<endl<<endl;
 	}
+
+	cache_build();
+
+	return;
+}
+
+void cache_build() {
+	int new_int;
+	for(int i = 0; i < size_file; i++) {
+		new_int = (int) user.num_blocks;
+		main_cache[blocks[i].index][new_int];
+	}
+	if (user.associativity == 1) { // direct mapped
+		//row = index, //col = block
+		for(int i = 0; i < user.block_size;i++) {
+			for(int j = 0; j < user.num_blocks; j++) {
+				main_cache[blocks[i].index][blocks[j].index] = blocks[j].data;
+				cout<<main_cache[i][j]<<" ";
+			}
+		}
+	}
+
+
+
 
 	return;
 }
