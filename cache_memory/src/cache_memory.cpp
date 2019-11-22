@@ -16,6 +16,9 @@ using namespace std;
 //global variable (input stream)
 unsigned short int input_arr[MAX_SIZE];
 int size_file;
+unsigned int num_cache_lines;
+
+// global structures
 struct cache_type {
 	int block_size = 16; // default to 16 bits
 	int num_blocks = 4; // default to 4 blocks
@@ -51,7 +54,7 @@ int main() {
 
 void read_f() {
 	try {
-		ifstream file("test.txt");
+		ifstream file("addresses.txt");
 		if(!file.is_open()) {
 			throw runtime_error("Unable to open file");
 		}
@@ -83,8 +86,8 @@ void user_args() {
 		cout<<"How wide will each block be? (Hint: width of the block in bits)" << endl;
 		cin >> user.block_size;
 
-		if(user.block_size < 16) {
-			throw "Illegal entry. Please input a value equal too or larger than a word (4 bytes) ";
+		if(user.block_size < 4) {
+			throw "Illegal entry. Please input a value equal too or larger than a quarter-word (1 bytes) ";
 		}
 
 		cout<<"How many blocks should the cache contain? (Hint: # of blocks in the cache = power of 2)" << endl;
@@ -110,10 +113,10 @@ void cache_table() {
 	//unsigned int main_cache[user.num_blocks]; //initialize cache block of block_size rows and 1 column
 	//unsigned int block_cont[user.block_size]; //initialize block array of block size
 	unsigned int local_vals[size_file];
-	static unsigned int num_cache_lines = (user.num_blocks*user.block_size)/(user.associativity*user.block_size);
+	num_cache_lines = (user.num_blocks*user.block_size)/(user.associativity*user.block_size);
 	// 1. offset of cache = user.block_size * 4 (# words * (4 bytes/word)) = 2^offset_bits
-	// i.e 16 bit block size = 16 * 4 => 64 = 6 bits for offset
-	// i.e 8 bit block size = 8 * 4 => 32 = 5 bits for offset
+	// i.e 16 block size = 16 * 4 => 64 = 6 bits for offset
+	// i.e 8 block size = 8 * 4 => 32 = 5 bits for offset
 
 	// FOR FULLY ASSOCIATIVE CACHE, THERE ARE NO INDEX BITS
 	// 2. index of cache (cache size) = user.num_blocks = 2^user.num_blocks
@@ -135,9 +138,14 @@ void cache_table() {
 			blocks[j].index = local_vals[j] % num_cache_lines; //grab index of block at address j
 		}
 	}
+
+	for(int i = 0; i < size_file; i++) {
+		blocks[i].tag = (local_vals[i])/(num_cache_lines * user.block_size);
+	}
 	cout<<"finished populating block array.offset"<<endl;
 	for(int k = 0; k < size_file; k++) {
 		cout<<"Block index: "<< blocks[k].index << endl;
+		cout<<"Block tag: " << blocks[k].tag<<endl;
 	}
 
 	return;
